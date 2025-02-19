@@ -6,7 +6,7 @@ import random
 import pandas as pd
 
 # Verify dataset path
-dataset_path = './dataset-resized'
+dataset_path = '../dataset-resized'
 categories = os.listdir(dataset_path)
 
 print(f"Categories: {categories}")

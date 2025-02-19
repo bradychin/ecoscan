@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 #--------- 2. Load Dataset ---------#
-dataset_path = './dataset-resized'
+dataset_path = '../dataset-resized'
 categories = os.listdir(dataset_path)
 print(f'Categories: {categories}')
 
