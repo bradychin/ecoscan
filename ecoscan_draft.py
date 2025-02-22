@@ -39,9 +39,9 @@ def data_augmentation(image, label):
 # Apply augmentation only to training dataset
 train_dataset = train_dataset.map(data_augmentation)
 
-train_dataset = train_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-validation_dataset = validation_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-test_dataset = test_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+# train_dataset = train_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+# validation_dataset = validation_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+# test_dataset = test_dataset.cache().prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 #--------- 3. Build Model ---------#
 model = keras.Sequential()
@@ -49,10 +49,10 @@ model = keras.Sequential()
 model.add(keras.Input(shape=(224,224,3))) # Input layer
 
 # Hidden layers (5)
-model.add(layers.Conv2D(32, (3,3), activation='relu')) # Convolution layer
-# model.add(layers.Activation('relu')) # Activation Layer
-# model.add(layers.Conv2D(64, (3,3))) # Convolution layer
-# model.add(layers.Activation('relu')) # Activation Layer
+model.add(layers.Conv2D(32, (3,3))) # Convolution layer
+model.add(layers.Activation('relu')) # Activation Layer
+model.add(layers.Conv2D(64, (3,3))) # Convolution layer
+model.add(layers.Activation('relu')) # Activation Layer
 model.add(layers.MaxPool2D(pool_size=(2,2))) # Pooling layer
 
 model.add(layers.Flatten()) # Flatten layer
@@ -61,7 +61,7 @@ model.add(layers.Dense(6, activation='softmax'))# Output layer
 
 #--------- 4. Train Model ---------#
 model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
+              loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
 model.fit(train_dataset,
