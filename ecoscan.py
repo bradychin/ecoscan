@@ -9,6 +9,7 @@ from keras.utils import load_img, img_to_array
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix
 
 #--------- 2. Load data ---------#
 def load_data(dataset_path, organized_path):
@@ -34,10 +35,10 @@ def load_data(dataset_path, organized_path):
         # Copy images into organized folders
         for image in train_images:
             shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'train', class_name, image))
-        for image in test_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'test', class_name, image))
         for image in validation_images:
             shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'validation', class_name, image))
+        for image in test_images:
+            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'test', class_name, image))
 
 #--------- 3. Process Dataset ---------#
 def process_data(organized_path):
@@ -119,16 +120,52 @@ def train_model(model, train_dataset, validation_dataset):
                   loss=keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy'])
 
-    model.fit(train_dataset,
-              steps_per_epoch=8,
+    history = model.fit(train_dataset,
+              # steps_per_epoch=8,
               epochs=50,
-              validation_data=validation_dataset,
-              validation_steps=8)
+              validation_data=validation_dataset
+              # validation_steps=8
+                        )
+
+    return history
 
 #--------- 6. Evaluate / Make Predictions ---------#
-def evaluate_mode(model, test_dataset):
+def evaluate_mode(model, test_dataset, history):
     loss, accuracy = model.evaluate(test_dataset)
     print(f'Accuracy: {accuracy}. Loss: {loss}')
+    # Get true labels and predictions
+    y_true = test_dataset.classes
+    y_pred_probs = model.predict(test_dataset)
+    y_pred = np.argmax(y_pred_probs, axis=1)
+
+    # Classification report
+    print("\nClassification Report:")
+    print(classification_report(y_true, y_pred, digits=4))
+
+    # Confusion matrix
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(y_true, y_pred))
+
+    print('\nTraining history:')
+    fig, ax = plt.subplots(1, 3, figsize=(20, 5))
+
+    # Plot accuracy
+    ax[0].plot(history.history['accuracy'], label='Train Accuracy')
+    ax[0].plot(history.history['val_accuracy'], label='Val Accuracy')
+    ax[0].set_title('Model Accuracy')
+    ax[0].set_xlabel('Epochs')
+    ax[0].set_ylabel('Accuracy')
+    ax[0].legend()
+    ax[0].grid()
+
+    # Plot loss
+    ax[1].plot(history.history['loss'], label='Train Loss')
+    ax[1].plot(history.history['val_loss'], label='Val Loss')
+    ax[1].set_title('Model Loss')
+    ax[1].set_xlabel('Epochs')
+    ax[1].set_ylabel('Loss')
+    ax[1].legend()
+    ax[1].grid()
 
 def single_image_prediction(model):
     predict_image_path = './dataset-organized/test/metal/metal29.jpg'
@@ -158,8 +195,8 @@ def main():
     load_data(dataset_path, organized_path)
     train_data, validation_data, test_data = process_data(organized_path)
     model = build_model()
-    train_model(model, train_data, validation_data)
-    evaluate_mode(model, test_data)
+    history = train_model(model, train_data, validation_data)
+    evaluate_mode(model, test_data, history)
     single_image_prediction(model)
 
 if __name__ == '__main__':
