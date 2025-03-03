@@ -10,6 +10,8 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
+from keras.callbacks import ModelCheckpoint
+from sklearn.utils.class_weight import compute_class_weight
 
 #--------- 2. Load data ---------#
 def load_data(dataset_path, organized_path):
@@ -45,7 +47,7 @@ def process_data(organized_path):
     # Preprocess data
     rescale = 1./255
     image_size = (224,224)
-    batch_size = 32
+    batch_size = 64
     class_mode = 'sparse'
     color_mode = 'rgb'
 
@@ -98,25 +100,30 @@ def build_model():
     model.add(keras.Input(shape=(224,224,3))) # Input layer
 
     # Hidden layers (5)
-    model.add(layers.Conv2D(64, (5,5))) # Convolution layer
+    model.add(layers.Conv2D(64, (3,3), padding='same')) # Convolution layer
     model.add(layers.BatchNormalization())  # Batch Norm
     model.add(layers.LeakyReLU(alpha=0.01)) # Activation Layer
     model.add(layers.MaxPool2D(pool_size=(2, 2)))  # Pooling layer
 
-    model.add(layers.Conv2D(128, (5,5))) # 2nd Convolution layer
+    model.add(layers.Conv2D(128, (3,3), padding='same')) # 2nd Convolution layer
     model.add(layers.BatchNormalization())  # Batch Norm
-    model.add(layers.LeakyReLU(alpha=0.01))
+    model.add(layers.LeakyReLU(alpha=0.01)) # Activation Layer
     model.add(layers.MaxPool2D(pool_size=(2,2))) # Pooling layer
 
-    model.add(layers.Conv2D(256, (5,5)))  # 3rd convolutional layer
+    model.add(layers.Conv2D(256, (3,3), padding='same'))  # 3rd convolutional layer
     model.add(layers.BatchNormalization())  # Batch Norm
     model.add(layers.LeakyReLU(alpha=0.01)) # Activation Layer
     model.add(layers.MaxPool2D(pool_size=(2, 2))) # Pooling layer
 
+    model.add(layers.Conv2D(512, (3, 3), padding='same'))  # 3rd convolutional layer
+    model.add(layers.BatchNormalization())  # Batch Norm
+    model.add(layers.LeakyReLU(alpha=0.01))  # Activation Layer
+    model.add(layers.MaxPool2D(pool_size=(2, 2)))  # Pooling layer
+
     # model.add(layers.Flatten()) # Flatten layer
     model.add(layers.GlobalAveragePooling2D())
-    model.add(layers.Dense(128))  # Fully Connected (Dense) layer
-    model.add(layers.BatchNormalization())  # Batch Norm
+    model.add(layers.Dense(256))  # Fully Connected (Dense) layer
+    model.add(layers.Dropout(0.1)) # Dropout layer
     model.add(layers.LeakyReLU(alpha=0.01)) # Activation Layer
     model.add(layers.Dense(6, activation='softmax'))# Output layer
 
@@ -124,16 +131,35 @@ def build_model():
 
 #--------- 5. Train Model ---------#
 def train_model(model, train_dataset, validation_dataset):
-    model.compile(optimizer=Adam(learning_rate=0.00001),
+    model.compile(optimizer=Adam(learning_rate=0.0001),
                   loss=keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy'])
 
+    class_weights = compute_class_weight(
+        class_weight="balanced",
+        classes=np.unique(train_dataset.classes),
+        y=train_dataset.classes
+    )
+
+    class_weights_dict = dict(enumerate(class_weights))
+
+    lr_scheduler = keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
+                                                     factor=0.5,
+                                                     patience=1,
+                                                     verbose=1)
+
+    estop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=8, verbose=1,
+                                          restore_best_weights=True)
+
+    # Save best model
+    checkpoint = ModelCheckpoint('best_model.h5', monitor='val_loss',
+                                 save_best_only=True, verbose=1)
+
     history = model.fit(train_dataset,
-              steps_per_epoch=8,
-              epochs=50,
-              validation_data=validation_dataset,
-              validation_steps=8
-                        )
+                        epochs=50,
+                        validation_data=validation_dataset,
+                        class_weight=class_weights_dict,
+                        callbacks=[lr_scheduler, estop, checkpoint])
 
     return history
 
