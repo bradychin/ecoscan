@@ -18,24 +18,25 @@ create a table containing the names of the files and paths of all the files in t
 """
 import os
 import pandas as pd
-print(os.listdir('../dataset-resized'))
-# # Set the directory path
-# dir_path = '../dataset-organized'
-# class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
-# # Create an empty list to store the file names and paths
-# file_list = []
-#
-# # Walk through the directory and its subdirectories
-# for root, dirs, files in os.walk(dir_path):
-#     for file in files:
-#         # Get the file path
-#         file_path = os.path.join(root, file)
-#         # Append the file name and path to the list
-#         file_list.append({'File Name': file, 'File Path': file_path})
-#
-# print(file_list)
-#
-# # Create a Pandas DataFrame from the list
-# df_path = pd.DataFrame([file_list, class_labels])
-#
-# print(df_path.head())
+
+# Set the directory path
+dir_path = '../dataset-resized'
+class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
+# Create an empty list to store the file names and paths
+file_list = []
+categories = []
+
+# Walk through the directory and its subdirectories
+for class_label in class_labels:
+    filenames = os.listdir(f'{dir_path}/{class_labels[class_label]}')
+    file_dirs = [f'{class_labels[class_label]}/{filename}' for filename in filenames]
+    file_list = file_list + file_dirs
+    categories = categories + [class_labels[class_label]] * len(filenames)
+
+# Create a Pandas DataFrame from the list
+df = pd.DataFrame({
+    'filename': file_list,
+    'category': categories
+})
+df = df.sample(frac=1).reset_index(drop=True)
+print(df)
