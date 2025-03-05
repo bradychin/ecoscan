@@ -42,17 +42,19 @@ def load_data(dataset_path, organized_path):
         for image in test_images:
             shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'test', class_name, image))
 
+    number_of_train_images = len(train_images)
+    number_of_validation_images = len(validation_images)
+
+    return number_of_train_images, number_of_validation_images
+
 #--------- 3. Process Dataset ---------#
-def process_data(organized_path):
+def process_data(organized_path, batch_size):
     # Preprocess data
-    rescale = 1./255
     image_size = (224,224)
-    batch_size = 64
     class_mode = 'sparse'
     color_mode = 'rgb'
 
     preprocess_training = ImageDataGenerator(
-        rescale=rescale,
         rotation_range=20,
         width_shift_range=0.3,
         height_shift_range=0.3,
@@ -61,8 +63,8 @@ def process_data(organized_path):
         horizontal_flip = True,
         vertical_flip = True
     )
-    preprocess_validation = ImageDataGenerator(rescale=rescale)
-    preprocess_testing = ImageDataGenerator(rescale=rescale)
+    preprocess_validation = ImageDataGenerator()
+    preprocess_testing = ImageDataGenerator()
 
     train_dataset = preprocess_training.flow_from_directory(
         os.path.join(organized_path, 'train'),
@@ -130,7 +132,7 @@ def build_model():
     return model
 
 #--------- 5. Train Model ---------#
-def train_model(model, train_dataset, validation_dataset):
+def train_model(model, train_dataset, validation_dataset, number_of_train_images, number_of_validation_images, batch_size):
     model.compile(optimizer=Adam(learning_rate=0.0001),
                   loss=keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy'])
@@ -158,13 +160,15 @@ def train_model(model, train_dataset, validation_dataset):
     history = model.fit(train_dataset,
                         epochs=50,
                         validation_data=validation_dataset,
+                        steps_per_epoch=number_of_train_images // batch_size,
                         class_weight=class_weights_dict,
+                        validation_steps = number_of_validation_images // batch_size,
                         callbacks=[lr_scheduler, estop, checkpoint])
 
     return history
 
 #--------- 6. Evaluate / Make Predictions ---------#
-def evaluate_mode(model, test_dataset, history):
+def evaluate_model(model, test_dataset, history):
     loss, accuracy = model.evaluate(test_dataset)
     print(f'Accuracy: {accuracy}. Loss: {loss}')
     # Get true labels and predictions
@@ -234,11 +238,14 @@ def main():
     # Create new directory
     organized_path = '../dataset-organized'
 
-    load_data(dataset_path, organized_path)
-    train_data, validation_data, test_data = process_data(organized_path)
+    batch_size = 64
+
+    number_of_train_images, number_of_validation_images = load_data(dataset_path, organized_path)
+    train_data, validation_data, test_data = process_data(organized_path, batch_size)
     model = build_model()
-    history = train_model(model, train_data, validation_data)
-    evaluate_mode(model, test_data, history)
+    history = train_model(model, train_data, validation_data, number_of_train_images, number_of_validation_images,
+                          batch_size)
+    evaluate_model(model, test_data, history)
     single_image_prediction(model)
 
 if __name__ == '__main__':
