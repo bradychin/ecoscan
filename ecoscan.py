@@ -18,39 +18,16 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 #--------- 2. Load data ---------#
 def load_data(dataset_path, organized_path):
-    os.makedirs(os.path.join(organized_path, 'train'), exist_ok=True)
-    os.makedirs(os.path.join(organized_path, 'validation'), exist_ok=True)
-    os.makedirs(os.path.join(organized_path, 'test'), exist_ok=True)
+    class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
 
-    classes = [cls for cls in os.listdir(dataset_path) if cls != ".DS_Store"]
+    # Split dataset
+    train_images, validation_test_images = train_test_split(os.listdir(class_path), test_size=0.3, random_state=42)
+    validation_images, test_images = train_test_split(validation_test_images, test_size=0.3, random_state=42)
 
-    for class_name in classes:
-        class_path = os.path.join(dataset_path, class_name)
-
-        # Create train, validation, test directories in organized dataset
-        os.makedirs(os.path.join(organized_path, 'train', class_name), exist_ok=True)
-        os.makedirs(os.path.join(organized_path, 'test', class_name), exist_ok=True)
-        os.makedirs(os.path.join(organized_path, 'validation', class_name), exist_ok=True)
-
-        # Split dataset
-        train_images, test_val_images = train_test_split(os.listdir(class_path), test_size=0.3, random_state=42)
-        test_images, validation_images = train_test_split(test_val_images, test_size=0.5, random_state=42)
-
-        # Copy images into organized folders
-        for image in train_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'train', class_name, image))
-        for image in validation_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'validation', class_name, image))
-        for image in test_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'test', class_name, image))
-
-    number_of_train_images = len(train_images)
-    number_of_validation_images = len(validation_images)
-
-    return number_of_train_images, number_of_validation_images
+    return train_images, validation_images, test_images
 
 #--------- 3. Process Dataset ---------#
-def process_data(organized_path, batch_size):
+def process_data(organized_path, train_images, validation_images, test_images, batch_size):
     # Preprocess data
     image_size = (224,224)
     class_mode = 'categorical'
@@ -68,7 +45,8 @@ def process_data(organized_path, batch_size):
     preprocess_validation = ImageDataGenerator()
     preprocess_testing = ImageDataGenerator()
 
-    train_dataset = preprocess_training.flow_from_directory(
+    train_dataset = preprocess_training.flow_from_dataframe(
+        train_images,
         os.path.join(organized_path, 'train'),
         target_size=image_size,
         batch_size=batch_size,
@@ -77,7 +55,8 @@ def process_data(organized_path, batch_size):
         shuffle=True
     )
 
-    validation_dataset = preprocess_validation.flow_from_directory(
+    validation_dataset = preprocess_validation.flow_from_dataframe(
+        validation_images,
         os.path.join(organized_path, 'validation'),
         target_size=image_size,
         batch_size=batch_size,
@@ -86,7 +65,8 @@ def process_data(organized_path, batch_size):
         shuffle=False
     )
 
-    test_dataset = preprocess_testing.flow_from_directory(
+    test_dataset = preprocess_testing.flow_from_dataframe(
+        test_images,
         os.path.join(organized_path, 'test'),
         target_size=image_size,
         batch_size=batch_size,
@@ -122,7 +102,7 @@ def build_model():
     return model
 
 #--------- 5. Train Model ---------#
-def train_model(model, train_dataset, validation_dataset, number_of_train_images, number_of_validation_images, batch_size):
+def train_model(model, train_dataset, validation_dataset, batch_size):
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
@@ -139,7 +119,7 @@ def train_model(model, train_dataset, validation_dataset, number_of_train_images
                                min_delta=0.001,
                                restore_best_weights=False)
 
-    checkpoint = ModelCheckpoint('best_model.keras',
+    checkpoint = ModelCheckpoint('model.keras',
                                  monitor='val_loss',
                                  save_best_only=True,
                                  verbose=1)
@@ -147,9 +127,9 @@ def train_model(model, train_dataset, validation_dataset, number_of_train_images
     history = model.fit(
         train_dataset,
         epochs=50,
-        steps_per_epoch=number_of_train_images // batch_size,
+        steps_per_epoch=len(train_dataset) // batch_size,
         validation_data=validation_dataset,
-        validation_steps=number_of_validation_images // batch_size,
+        validation_steps=len(validation_dataset) // batch_size,
         # callbacks=[lr_scheduler, early_stop]
     )
 
@@ -230,10 +210,10 @@ def main():
 
     batch_size = 64
 
-    number_of_train_images, number_of_validation_images = load_data(dataset_path, organized_path)
-    train_data, validation_data, test_data = process_data(organized_path, batch_size)
+    train_images, validation_images, test_images = load_data(dataset_path, organized_path)
+    train_data, validation_data, test_data = process_data(organized_path, train_images, validation_images, test_images, batch_size)
     model = build_model()
-    history = train_model(model, train_data, validation_data, number_of_train_images, number_of_validation_images, batch_size)
+    history = train_model(model, train_data, validation_data, batch_size)
     evaluate_model(model, test_data, history)
     single_image_prediction(model)
 
