@@ -28,6 +28,7 @@ class MobileNetV2PreprocessingLayer(layers.Layer):
         # This is required to ensure proper saving/loading
         config = super(MobileNetV2PreprocessingLayer, self).get_config()
         return config
+
 #--------- 2. Load data ---------#
 def load_data(dataset_path):
     class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
