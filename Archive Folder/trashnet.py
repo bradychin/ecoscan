@@ -1,24 +1,42 @@
-#--------- 1. Import libraries ---------#
+# #--------- 1. Import libraries ---------#
+# import os
+# import pandas as pd
+#
+# #--------- 2. Load Dataset ---------#
+# dataset_path = '../dataset-resized'
+# class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
+#
+# for directory_path, directory_name, filename in os.walk(dataset_path):
+#     print(f"Directory: {directory_path}")
+#     print(f"Subdirectories: {directory_name}")
+#     print(f"Files: {filename}")
+#     print("-" * 20)
+#
+
+"""
+create a table containing the names of the files and paths of all the files in the shared folder
+"""
 import os
 import pandas as pd
 
-#--------- 2. Load Dataset ---------#
-dataset_path = '../dataset-resized'
-categories = os.listdir(dataset_path)
-print(f'Categories: {categories}')
+# Set the directory path
+dir_path = '../dataset-resized'
+class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
+# Create an empty list to store the file names and paths
+file_list = []
+categories = []
 
-# Convert folder structure to CSV
-data = []
-for category in categories:
-    category_path = os.path.join(dataset_path, category)
-    for img in os.listdir(category_path):
-        data.append((os.path.join(category_path, img), category))
-df = pd.DataFrame(data, columns=['image_path', 'label'])
-df.to_csv('trashnet_dataset.csv', index=False)
-print('File saved as trashnet_dataset.csv')
+# Walk through the directory and its subdirectories
+for class_label in class_labels:
+    filenames = os.listdir(f'{dir_path}/{class_labels[class_label]}')
+    file_dirs = [f'{class_labels[class_label]}/{filename}' for filename in filenames]
+    file_list = file_list + file_dirs
+    categories = categories + [class_labels[class_label]] * len(filenames)
 
-#--------- 3. Extract Features and Target ---------#
-#--------- 4. Split Data ---------#
-#--------- 5. Train the Model ---------#
-#--------- 6. Make Prediction ---------#
-#--------- 7. Evaluate Model ---------#
+# Create a Pandas DataFrame from the list
+df = pd.DataFrame({
+    'filename': file_list,
+    'category': categories
+})
+df = df.sample(frac=1).reset_index(drop=True)
+print(df)

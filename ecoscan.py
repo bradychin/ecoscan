@@ -1,7 +1,7 @@
 #--------- 1. Import libraries ---------#
 import os
-import shutil
 import keras
+import random
 import numpy as np
 import pandas as pd
 from keras import layers
@@ -12,45 +12,53 @@ from keras.utils import load_img, img_to_array
 from sklearn.model_selection import train_test_split
 import keras.applications.mobilenet_v2 as mobilenetv2
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from sklearn.utils.class_weight import compute_class_weight
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import classification_report, confusion_matrix
 
 
+class MobileNetV2PreprocessingLayer(layers.Layer):
+    def __init__(self, **kwargs):
+        super(MobileNetV2PreprocessingLayer, self).__init__(**kwargs)
+
+    def call(self, inputs):
+        return mobilenetv2.preprocess_input(inputs)
+
+    def get_config(self):
+        # This is required to ensure proper saving/loading
+        config = super(MobileNetV2PreprocessingLayer, self).get_config()
+        return config
+
 #--------- 2. Load data ---------#
-def load_data(dataset_path, organized_path):
-    os.makedirs(os.path.join(organized_path, 'train'), exist_ok=True)
-    os.makedirs(os.path.join(organized_path, 'validation'), exist_ok=True)
-    os.makedirs(os.path.join(organized_path, 'test'), exist_ok=True)
+def load_data(dataset_path):
+    class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
+    file_list = []
+    categories = []
 
-    classes = [cls for cls in os.listdir(dataset_path) if cls != ".DS_Store"]
+    for class_label in class_labels:
+        filenames = os.listdir(f'{dataset_path}/{class_labels[class_label]}')
+        file_dirs = [f'{class_labels[class_label]}/{filename}' for filename in filenames]
+        file_list = file_list + file_dirs
+        categories = categories + [class_labels[class_label]] * len(filenames)
 
-    for class_name in classes:
-        class_path = os.path.join(dataset_path, class_name)
+    df = pd.DataFrame({
+        'filename': file_list,
+        'category': categories
+    })
+    df = df.sample(frac=1).reset_index(drop=True)
 
-        # Create train, validation, test directories in organized dataset
-        os.makedirs(os.path.join(organized_path, 'train', class_name), exist_ok=True)
-        os.makedirs(os.path.join(organized_path, 'test', class_name), exist_ok=True)
-        os.makedirs(os.path.join(organized_path, 'validation', class_name), exist_ok=True)
+    # Split dataset
+    train_images, validation_test_images = train_test_split(df, test_size=0.3, random_state=42)
+    validation_images, test_images = train_test_split(validation_test_images, test_size=0.3, random_state=42)
 
-        # Split dataset
-        train_images, test_val_images = train_test_split(os.listdir(class_path), test_size=0.3, random_state=42)
-        test_images, validation_images = train_test_split(test_val_images, test_size=0.5, random_state=42)
+    print(train_images.head())
+    print(validation_images.head())
+    print(test_images.head())
 
-        # Copy images into organized folders
-        for image in train_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'train', class_name, image))
-        for image in validation_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'validation', class_name, image))
-        for image in test_images:
-            shutil.copy(os.path.join(class_path, image), os.path.join(organized_path, 'test', class_name, image))
-
-    number_of_train_images = len(train_images)
-    number_of_validation_images = len(validation_images)
-
-    return number_of_train_images, number_of_validation_images
+    return train_images, validation_images, test_images
 
 #--------- 3. Process Dataset ---------#
-def process_data(organized_path, batch_size):
+def process_data(dataset_path, train_images, validation_images, test_images, batch_size):
     # Preprocess data
     image_size = (224,224)
     class_mode = 'categorical'
@@ -68,8 +76,11 @@ def process_data(organized_path, batch_size):
     preprocess_validation = ImageDataGenerator()
     preprocess_testing = ImageDataGenerator()
 
-    train_dataset = preprocess_training.flow_from_directory(
-        os.path.join(organized_path, 'train'),
+    train_dataset = preprocess_training.flow_from_dataframe(
+        train_images,
+        dataset_path,
+        x_col='filename',
+        y_col='category',
         target_size=image_size,
         batch_size=batch_size,
         class_mode=class_mode,
@@ -77,8 +88,11 @@ def process_data(organized_path, batch_size):
         shuffle=True
     )
 
-    validation_dataset = preprocess_validation.flow_from_directory(
-        os.path.join(organized_path, 'validation'),
+    validation_dataset = preprocess_validation.flow_from_dataframe(
+        validation_images,
+        dataset_path,
+        x_col='filename',
+        y_col='category',
         target_size=image_size,
         batch_size=batch_size,
         class_mode=class_mode,
@@ -86,8 +100,11 @@ def process_data(organized_path, batch_size):
         shuffle=False
     )
 
-    test_dataset = preprocess_testing.flow_from_directory(
-        os.path.join(organized_path, 'test'),
+    test_dataset = preprocess_testing.flow_from_dataframe(
+        test_images,
+        dataset_path,
+        x_col='filename',
+        y_col='category',
         target_size=image_size,
         batch_size=batch_size,
         class_mode=class_mode,
@@ -110,10 +127,12 @@ def build_model():
     model.add(keras.Input(shape=(224, 224, 3)))
 
     # create a custom layer to apply the preprocessing
-    def mobilenetv2_preprocessing(img):
-        return mobilenetv2.preprocess_input(img)
-
-    model.add(Lambda(mobilenetv2_preprocessing))
+    # def mobilenetv2_preprocessing(img):
+    #     return mobilenetv2.preprocess_input(img)
+    #
+    # model.add(Lambda(mobilenetv2_preprocessing))
+    # Add the custom preprocessing layer
+    model.add(MobileNetV2PreprocessingLayer())
 
     model.add(mobilenetv2_layer)
     model.add(layers.GlobalAveragePooling2D())
@@ -122,10 +141,18 @@ def build_model():
     return model
 
 #--------- 5. Train Model ---------#
-def train_model(model, train_dataset, validation_dataset, number_of_train_images, number_of_validation_images, batch_size):
+def train_model(model, train_dataset, validation_dataset, batch_size):
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
+
+    class_weights = compute_class_weight(
+        class_weight="balanced",
+        classes=np.unique(train_dataset.classes),
+        y=train_dataset.classes
+    )
+
+    class_weights_dict = dict(enumerate(class_weights))
 
     lr_scheduler = keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
                                                      factor=0.5,
@@ -139,19 +166,21 @@ def train_model(model, train_dataset, validation_dataset, number_of_train_images
                                min_delta=0.001,
                                restore_best_weights=False)
 
-    checkpoint = ModelCheckpoint('best_model.keras',
+    checkpoint = ModelCheckpoint('model.keras',
                                  monitor='val_loss',
                                  save_best_only=True,
                                  verbose=1)
 
     history = model.fit(
         train_dataset,
-        epochs=50,
-        steps_per_epoch=number_of_train_images // batch_size,
+        epochs=5,
+        steps_per_epoch=len(train_dataset) // batch_size,
         validation_data=validation_dataset,
-        validation_steps=number_of_validation_images // batch_size,
-        # callbacks=[lr_scheduler, early_stop]
+        validation_steps=len(validation_dataset) // batch_size,
+        class_weight=class_weights_dict
     )
+
+    model.save('model.keras')
 
     return history
 
@@ -197,18 +226,21 @@ def evaluate_model(model, test_dataset, history):
     ax[1].grid()
 
 def single_image_prediction(model):
-    predict_image_path = './dataset-organized/test/glass/glass6.jpg'
+    class_id = 'trash'
+    predict_image_path = f'./dataset-resized/{class_id}/{class_id}{random.randint(1, 137)}.jpg'
     img = load_img(predict_image_path, target_size=(224, 224))
     img_array = img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array /= 255.0
 
     prediction = model.predict(img_array)[0]  # Get the first (and only) prediction
+    print(prediction)
     class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
     predicted_index = np.argmax(prediction)
     predicted_class = class_labels[predicted_index]
 
-    print(f'\nPredicted class: {predicted_class}')
+    print(f'\nActual class: {class_id}')
+    print(f'Predicted class: {predicted_class}')
 
     sorted_indices = np.argsort(prediction)[::-1]
     sorted_classes = [(class_labels[i], prediction[i]) for i in sorted_indices]
@@ -225,15 +257,13 @@ def single_image_prediction(model):
 def main():
     # Define original dataset
     dataset_path = './dataset-resized'
-    # Create new directory
-    organized_path = './dataset-organized'
 
     batch_size = 64
 
-    number_of_train_images, number_of_validation_images = load_data(dataset_path, organized_path)
-    train_data, validation_data, test_data = process_data(organized_path, batch_size)
+    train_images, validation_images, test_images = load_data(dataset_path)
+    train_data, validation_data, test_data = process_data(dataset_path, train_images, validation_images, test_images, batch_size)
     model = build_model()
-    history = train_model(model, train_data, validation_data, number_of_train_images, number_of_validation_images, batch_size)
+    history = train_model(model, train_data, validation_data, batch_size)
     evaluate_model(model, test_data, history)
     single_image_prediction(model)
 

@@ -53,7 +53,6 @@ categories_list = []
 
 for category in categories:
     filenames = os.listdir(base_path + categories[category])
-
     filenames_list = filenames_list + filenames
     categories_list = categories_list + [category] * len(filenames)
 
@@ -63,13 +62,13 @@ df = pd.DataFrame({
 })
 
 df = add_class_name_prefix(df, 'filename')
-
+df["category"] = df["category"].replace(categories)
 # Shuffle the dataframe
 df = df.sample(frac=1).reset_index(drop=True)
 
 print('number of elements = ', len(df))
 
-print(df.head())
+print(df)
 
 mobilenetv2_layer = mobilenetv2.MobileNetV2(include_top = False,
                                             input_shape = (IMAGE_WIDTH, IMAGE_HEIGHT,IMAGE_CHANNELS),
