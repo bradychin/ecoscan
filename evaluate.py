@@ -1,77 +1,76 @@
-from tensorflow.keras.models import load_model
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.utils import load_img, img_to_array
-import random
-import keras
+from tensorflow.keras.models import load_model
 from ecoscan import MobileNetV2PreprocessingLayer
 
-model = load_model('model.keras', custom_objects={'MobileNetV2PreprocessingLayer': MobileNetV2PreprocessingLayer})
+def predict_image(image_path):
+    model = load_model('model.keras', custom_objects={'MobileNetV2PreprocessingLayer': MobileNetV2PreprocessingLayer})
 
+    image = load_img(image_path, target_size=(224, 224))
+    img_array = img_to_array(image)
+    img_array = np.expand_dims(img_array, axis=0)
 
+    prediction = model.predict(img_array)[0]  # Get the first (and only) prediction
+    class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
+    predicted_index = np.argmax(prediction)
+    predicted_class = class_labels[predicted_index]
+    predicted_probability = prediction[predicted_index]
 
-class_id = 'paper'
-predict_image_path = f'./dataset-resized/{class_id}/{class_id}{random.randint(1, 300)}.jpg'
-img = load_img(predict_image_path, target_size=(224, 224))
-img_array = img_to_array(img)
-img_array = np.expand_dims(img_array, axis=0)
-img_array /= 255.0
+    sorted_indices = np.argsort(prediction)[::-1]
+    sorted_classes = [(class_labels[i], prediction[i]) for i in sorted_indices]
 
-prediction = model.predict(img_array)[0]  # Get the first (and only) prediction
-class_labels = {0: 'cardboard', 1: 'glass', 2: 'metal', 3: 'paper', 4: 'plastic', 5: 'trash'}
-predicted_index = np.argmax(prediction)
-predicted_class = class_labels[predicted_index]
+    print("\nPredicted class probabilities:")
+    for label, prob in sorted_classes:
+        print(f"{label}: {prob:.4f}")
 
-print(f'\nActual class: {class_id}')
-print(f'Predicted class: {predicted_class}')
+    return predicted_class, predicted_probability, image
 
-sorted_indices = np.argsort(prediction)[::-1]
-sorted_classes = [(class_labels[i], prediction[i]) for i in sorted_indices]
-print("Predicted class probabilities:")
-for label, prob in sorted_classes:
-    print(f"{label}: {prob:.4f}")
+def recycling_decision(prediction, probability):
+    print(f'\nPrediction: {prediction.capitalize()}')
+    print(f'Probability: {probability*100:.2f}%')
+    print('\nFollow the below steps to properly recycle.')
 
-plt.imshow(img)
-plt.title(f'Predicted: {predicted_class}')
-plt.axis('off')
-plt.show()
+    # Rule based decision-making
+    if prediction == 'cardboard':
+        print('''        1. Clean and dry.
+        2. Remove packaging, tape, labels.
+        3. Cut out soiled areas. 
+        4. Flatten
+        ''')
+    elif prediction == 'glass':
+        print('''        1. Empty and rinse bottles or jars.
+        2. Do not remove lids.
+        3. Remove corks.
+        4. Ensure that glass is not broken.
+        ''')
+    elif prediction == 'metal':
+        print('        Rules vary by location. Check you manciple recycling program.\n')
+    elif prediction == 'paper':
+        print('''        Ensure that paper is clean and dry. Remove staples.
+        
+        Paper that cannot be recycled:
+        1. Coated with wax. 
+        2. Lined with plastic.
+        ''')
+    elif prediction == 'plastic':
+        print('''        Ensure that containers or bottles are empty, clean, and dry.
+        
+        Plastic that cannot be recycled:
+        1. Plastic bags, wrap, film.
+        2. Flexible packaging.
+        3. Cups or containers with wax coating.
+        4. Polystyrene.
+        ''')
+    else:
+        print('You should recycle this item.\n')
 
-def evaluate_model(model, test_dataset, history):
-    loss, accuracy = model.evaluate(test_dataset)
-    print(f'Accuracy: {accuracy}. Loss: {loss}')
-    # Get true labels and predictions
-    y_true = test_dataset.classes
-    y_pred_probs = model.predict(test_dataset)
-    y_pred = np.argmax(y_pred_probs, axis=1)
+if __name__ == '__main__':
+    image_path = input('Enter the name of your image along with the extension (example: paper.jpg)\n>>> ')
+    prediction, probability, image = predict_image(image_path)
+    recycling_decision(prediction, probability)
 
-    # Classification report
-    print("\nClassification Report:")
-    print(classification_report(y_true, y_pred, digits=4))
-
-    # Confusion matrix
-    print("\nConfusion Matrix:")
-    print(confusion_matrix(y_true, y_pred))
-
-    print('\nTraining history:')
-    fig, ax = plt.subplots(1, 3, figsize=(20, 5))
-
-    df = pd.DataFrame(history.history)
-    print(df)
-
-    # Plot accuracy
-    ax[0].plot(history.history['accuracy'], label='Train Accuracy')
-    ax[0].plot(history.history['val_accuracy'], label='Val Accuracy')
-    ax[0].set_title('Model Accuracy')
-    ax[0].set_xlabel('Epochs')
-    ax[0].set_ylabel('Accuracy')
-    ax[0].legend()
-    ax[0].grid()
-
-    # Plot loss
-    ax[1].plot(history.history['loss'], label='Train Loss')
-    ax[1].plot(history.history['val_loss'], label='Val Loss')
-    ax[1].set_title('Model Loss')
-    ax[1].set_xlabel('Epochs')
-    ax[1].set_ylabel('Loss')
-    ax[1].legend()
-    ax[1].grid()
+    plt.imshow(image)
+    plt.title(f'Prediction: {prediction}')
+    plt.axis('off')
+    plt.show()
