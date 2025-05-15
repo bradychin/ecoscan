@@ -1,19 +1,8 @@
-### This assignment consists of 2 programs:
-1. ecoscan.py: Build, train, and evaluate the computer vision model.
-2. evaluate.py: Make predictions from a single image.
+1.  Place your image into the root folder.
 
-### Instructions to run ecoscan.py:
-1. Ensure that folder "dataset-resized" is unzipped and in the same folder as ecoscan.py.
-2. Ensure that file "mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_224_no_top.h5" is in the same folder as ecoscan.py
-3. Run ecoscan.py to create model.
+2.	Run main.py.
+    - If no trained model exists at the configured path, training will begin.
+    - If a trained model exists, the image predictor will launch immediately.
 
-Note: The model has already been created (model.keras.). Only run ecoscan.py if needed.
-
-### Instructions to run evaluate.py:
-1. Ensure that "ecoscan.py" and ""model.keras" are in the same folder as evaluate.py.
-2. Ensure that the image you want to predict is in .jpg format.
-3. Place you image into the same folder as evaluate.py.
-4. Run evaluate.py to make prediction.
-5. Enter the image name, including the file extension, when prompted.
-
-Note: Test images are provided. The above instructions still apply
+NOTE: To change the model save/load location:
+      - Edit MODEL_PATH in src/config.py.
