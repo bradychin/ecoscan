@@ -78,7 +78,7 @@ def predict_image():
 
     predictor = Predictor()
 
-    prediction, probability, image = predictor.predict_image(os.path.join(config.PROJECT_ROOT, image_path))
+    prediction, probability, image = predictor.predict_image(os.path.join(config.PROJECT_ROOT, f'./data/Test Images/{image_path}.jpg'))
     predictor.recycling_decision(prediction, probability)
 
     plt.imshow(image)
