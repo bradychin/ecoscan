@@ -74,12 +74,17 @@ class Predictor:
 
 # --------- Predict Image Function ---------#
 def predict_image():
-    image_path = input('Enter the name of your image along with the extension (example: paper.jpg)\n>>> ')
+    print('Place your image into the "test images" folder.')
+    image_path = input('Enter the name of your image file (example: paper_test)\n>>> ')
 
     predictor = Predictor()
 
-    prediction, probability, image = predictor.predict_image(os.path.join(config.PROJECT_ROOT, f'./data/Test Images/{image_path}.jpg'))
-    predictor.recycling_decision(prediction, probability)
+    try:
+        prediction, probability, image = predictor.predict_image(os.path.join(config.PROJECT_ROOT, f'./test images/{image_path}.jpg'))
+        predictor.recycling_decision(prediction, probability)
+    except FileNotFoundError:
+        print('File not found.')
+        return
 
     plt.imshow(image)
     plt.title(f'Prediction: {prediction}')
