@@ -9,8 +9,8 @@ A machine learning project that uses transfer learning with MobileNetV2 to class
 
 1. Clone this repository:
 ```bash
-git clone <your-repo-url>
-cd <your-repo-name>
+git clone https://github.com/bradychin/ecoscan
+cd ecoscan
 ```
 
 2. Create a virtual environment with Python 3.11:
@@ -24,26 +24,44 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create the required directories:
-```bash
-mkdir -p data/dataset models
-```
-
-5. Add your training data to `data/dataset/` organized by class folders (e.g., `data/dataset/cardboard/`, `data/dataset/plastic/`, etc.)
-
 ## Usage
 
-1. Place your image into the "test images" folder
-2. run the main script
+### Quick Start - Test Predictions
+The project comes with a pre-trained model and sample test images. Simply run:
 ```bash
 python main.py
 ```
 
-This will:
-- Train a model if one doesn't exist yet (saves to `models/model.keras`)
-- Run predictions on images
+When prompted, enter the name of an image file from the `test images/` folder (e.g., `sample.jpg`).
 
-To evaluate the model:
+You can add your own test images to the `test images/` folder - supports `.jpg`, `.jpeg`, and `.png` formats.
+
+### Retrain the Model
+To retrain with your own data:
+
+1. Organize your training images in `data/dataset/` by category:
+```
+data/dataset/
+├── cardboard/
+├── glass/
+├── metal/
+├── paper/
+├── plastic/
+└── trash/
+```
+
+2. Delete or rename the existing model:
+```bash
+rm models/model.keras
+```
+
+3. Run the training:
+```bash
+python main.py
+```
+
+### Evaluate Model Performance
+To see accuracy, precision, and recall metrics:
 ```bash
 python evaluation.py
 ```
@@ -58,13 +76,22 @@ python evaluation.py
 │   ├── predictor.py
 │   └── utils/
 │       └── config.py
-├── data/                # Training data
+├── data/                # Training data (provided)
 │   └── dataset/
-├── models/              # Saved models
+├── models/              # Pre-trained model (included)
+│   └── model.keras
+├── test images/         # Sample test images (provided)
 └── requirements.txt     # Python dependencies
 ```
 
 ## Model Details
 - Base Model: MobileNetV2 (pretrained on ImageNet)
+- Transfer Learning: Fine-tuned on waste classification dataset
 - Image Size: 224x224
+- Classes: Cardboard, Glass, Metal, Paper, Plastic, Trash
 - Evaluation Metrics: Accuracy, Precision, Recall
+
+## Customization
+- Replace images in `data/dataset/` with your own training data
+- Add your own test images to `test images/`
+- Modify class names in the code to match your categories
