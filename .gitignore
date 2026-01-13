@@ -4,3 +4,5 @@ data/dataset-resized/.DS_Store
 *.pyc
 *.iml
 *.xml
+*.xml
+*.iml
