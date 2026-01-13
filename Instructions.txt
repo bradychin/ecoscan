@@ -1,8 +1,0 @@
-1.  Place your image into the root folder.
-
-2.	Run main.py.
-    - If no trained model exists at the configured path, training will begin.
-    - If a trained model exists, the image predictor will launch immediately.
-
-NOTE: To change the model save/load location:
-      - Edit MODEL_PATH in src/utils/config.py.
