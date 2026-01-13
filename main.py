@@ -1,6 +1,10 @@
 # --------- Import Libraries ---------#
 import os
 
+os.makedirs('./test images', exist_ok=True)
+os.makedirs('./models', exist_ok=True)
+os.makedirs('./data/dataset', exist_ok=True)
+
 # --------- Import Classes ---------#
 from src.model_wrapper import model_wrapper
 from src.predictor import predict_image
