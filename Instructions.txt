@@ -5,4 +5,4 @@
     - If a trained model exists, the image predictor will launch immediately.
 
 NOTE: To change the model save/load location:
-      - Edit MODEL_PATH in src/config.py.
+      - Edit MODEL_PATH in src/utils/config.py.
