@@ -1,50 +1,70 @@
-# Computer Vision Project
+# Waste Classification Model
 
-This project implements a simple computer vision pipeline for image processing and analysis. It leverages OpenCV for handling image operations and Matplotlib for data visualization. The project focuses on image transformations, object detection, and result plotting.
+A machine learning project that uses transfer learning with MobileNetV2 to classify waste images into different categories for recycling guidance.
 
-## Features
-- Load, process, and display images.
-- Apply basic image transformations (grayscale, blur, edge detection, etc.).
-- Visualize image data and processing results.
+## Requirements
+- Python 3.11 or 3.12
 
-## Technologies Used
-- **Python**: Main programming language.
-- **OpenCV**: Image processing and computer vision operations.
-- **Matplotlib**: Visualization of images and processing results.
-
-## Project Overview
-1. **Image Loading**: Read images from local directories.
-2. **Processing Pipeline**: Apply transformations like resizing, filtering, edge detection.
-3. **Visualization**: Use Matplotlib to display original and processed images side-by-side.
-4. **Extension Ready**: Easy to add new image operations or integrate with ML models.
-
-## Installation
+## Setup
 
 1. Clone this repository:
-    ```bash
-    git clone https://github.com/bradychin/ecoscan.git
-    cd ecoscan
-    ```
+```bash
+git clone <your-repo-url>
+cd <your-repo-name>
+```
 
-2. Create a virtual environment and activate it:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
-    ```
+2. Create a virtual environment with Python 3.11:
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
 
-3. Install the required dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Create the required directories:
+```bash
+mkdir -p data/dataset models
+```
+
+5. Add your training data to `data/dataset/` organized by class folders (e.g., `data/dataset/cardboard/`, `data/dataset/plastic/`, etc.)
 
 ## Usage
 
-Run the main script to execute the image processing pipeline:
-
+1. Place your image into the "test images" folder
+2. run the main script
 ```bash
 python main.py
 ```
 
-If no trained model exists at the configured path, training will begin.
+This will:
+- Train a model if one doesn't exist yet (saves to `models/model.keras`)
+- Run predictions on images
 
-If a trained model exists, the image predictor will launch immediately.
+To evaluate the model:
+```bash
+python evaluation.py
+```
+
+## Project Structure
+```
+.
+├── main.py              # Main entry point
+├── evaluation.py        # Model evaluation script
+├── src/                 # Source code
+│   ├── model_wrapper.py
+│   ├── predictor.py
+│   └── utils/
+│       └── config.py
+├── data/                # Training data
+│   └── dataset/
+├── models/              # Saved models
+└── requirements.txt     # Python dependencies
+```
+
+## Model Details
+- Base Model: MobileNetV2 (pretrained on ImageNet)
+- Image Size: 224x224
+- Evaluation Metrics: Accuracy, Precision, Recall
