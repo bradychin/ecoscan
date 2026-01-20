@@ -14,14 +14,21 @@ cd ecoscan
 ```
 
 2. Create a virtual environment with Python 3.11:
+
+On macOS
 ```bash
 python3.11 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
+```
+On Windows
+```bash
+py -3.11 -m venv .venv
+.venv\Scripts\activate
 ```
 
 3. Install dependencies:
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ## Usage
