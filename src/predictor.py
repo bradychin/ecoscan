@@ -76,7 +76,7 @@ class Predictor:
 # --------- Predict Image Function ---------#
 def predict_image():
     print('\n================================================')
-    print('Place your image into the "test images" folder.')
+    print('Place your image into the "test images" folder.\n')
     image_name = input('Enter the name of your image file (example: paper_test)\n>>> ')
 
     predictor = Predictor()
