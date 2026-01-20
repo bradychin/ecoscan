@@ -27,7 +27,8 @@ class Predictor:
         sorted_indices = np.argsort(prediction)[::-1]
         sorted_classes = [(class_labels[i], prediction[i]) for i in sorted_indices]
 
-        print("\nPredicted class probabilities:")
+        print('\n================================================')
+        print("Predicted class probabilities:")
         for label, prob in sorted_classes:
             print(f"{label}: {prob:.4f}")
 
@@ -74,6 +75,7 @@ class Predictor:
 
 # --------- Predict Image Function ---------#
 def predict_image():
+    print('\n================================================')
     print('Place your image into the "test images" folder.')
     image_name = input('Enter the name of your image file (example: paper_test)\n>>> ')
 
